@@ -1,80 +1,114 @@
-import os, pickle, argparse
-from pathlib import Path
-
+import os
+import tqdm
 import numpy as np
-from datasets import load_dataset
 import tiktoken
+from datasets import load_dataset 
+from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--dataset_name", default="HuggingFaceFW/fineweb-edu")
-    ap.add_argument("--dataset_config", default="sample-10BT")
-    ap.add_argument("--out_dir", default="data/fineweb")
-    ap.add_argument("--block_size", type=int, default=1024)
-    ap.add_argument("--max_tokens", type=int, default=2_000_000)  # keep small first!
-    ap.add_argument("--val_ratio", type=float, default=0.001)     # ~0.1% to val
-    args = ap.parse_args()
+# Configuration
+DATA_CACHE_DIR = os.path.join(os.path.dirname(__file__), "fineweb")
+os.makedirs(DATA_CACHE_DIR, exist_ok=True)
 
-    out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
 
-    train_path = out_dir / "train.bin"
-    val_path = out_dir / "val.bin"
-    meta_path = out_dir / "meta.pkl"
+dataset_name = "HuggingFaceFW/fineweb-edu"
+dataset_config = "sample-10BT"
+split = "train"
 
-    # reset files
-    if train_path.exists(): train_path.unlink()
-    if val_path.exists(): val_path.unlink()
 
+enc = None
+
+def init_worker():
+    """Initialize the tokenizer in each worker process."""
+    global enc
     enc = tiktoken.get_encoding("gpt2")
+
+def tokenize_batch(texts):
+    """Worker function to tokenize a batch of texts."""
+    global enc
     eot = enc.eot_token
-    vocab_size = enc.n_vocab  # 50257
+    results = []
+    for text in texts:
+        tokens = enc.encode_ordinary(text)
+        tokens.append(eot)
+        results.append(tokens)
+    return results
 
-    ds = load_dataset(args.dataset_name, args.dataset_config, split="train", streaming=True)
+def process():
+    print(f"Loading {dataset_name} ({dataset_config}) streaming...")
+    ds = load_dataset(dataset_name, name=dataset_config, split=split, streaming=True)
+    
+    train_filename = os.path.join(DATA_CACHE_DIR, "train.bin")
+    val_filename = os.path.join(DATA_CACHE_DIR, "val.bin")
+    
+    dtype = np.uint16 
+    
+    print(f"Writing to {train_filename} and {val_filename}...")
+    
+    print(f"Writing to {train_filename} and {val_filename}...")
+    
+    BATCH_SIZE = 1000  # Number of documents per batch
+    NUM_WORKERS = max(1, multiprocessing.cpu_count() - 2) # Leave some cores for system/IO
+    
+    print(f"Tokenizing with {NUM_WORKERS} workers...")
+    
+    total_tokens = 0
+    pbar = tqdm.tqdm(desc="Tokenizing", unit="tok")
 
-    train_f = open(train_path, "ab")
-    val_f = open(val_path, "ab")
+    batch = []
+    
+    with open(train_filename, "wb") as f_train, open(val_filename, "wb") as f_val, \
+         ProcessPoolExecutor(max_workers=NUM_WORKERS, initializer=init_worker) as executor:
+        
+        futures = []
+        
+        def process_futures():
+            nonlocal total_tokens
+            pass
 
-    total = 0
-    ex_i = 0
+        
+        HUGE_CHUNK = 10000 
+        current_texts = []
+        
+        for i, example in enumerate(ds):
+            current_texts.append(example['text'])
+            
+            if len(current_texts) >= HUGE_CHUNK:
+                sub_batches = [current_texts[j:j+BATCH_SIZE] for j in range(0, len(current_texts), BATCH_SIZE)]
+                
+                results_list = list(executor.map(tokenize_batch, sub_batches))
+                
+                for batch_results in results_list:
+                    for tokens in batch_results:
+                        arr = np.array(tokens, dtype=dtype)
+                        
+                        if np.random.rand() < 0.01: # 1% val
+                            f_val.write(arr.tobytes())
+                        else:
+                            f_train.write(arr.tobytes())
+                        
+                        count = len(tokens)
+                        total_tokens += count
+                        pbar.update(count)
+                
+                current_texts = []
 
-    print("Tokenizing + writing .bin files...")
-    for ex in ds:
-        text = ex.get("text", "")
-        if not text:
-            continue
-
-        ids = enc.encode(text)
-        ids.append(eot)
-
-        arr = np.array(ids, dtype=np.uint16)
-
-        # simple split rule: every Nth example goes to val
-        if np.random.random() < args.val_ratio:
-            arr.tofile(val_f)
-        else:
-            arr.tofile(train_f)
-
-        total += len(arr)
-        ex_i += 1
-
-        if ex_i % 200 == 0:
-            print(f"processed examples={ex_i}, tokens={total:,}")
-
-        if total >= args.max_tokens:
-            break
-
-    train_f.close()
-    val_f.close()
-
-    with open(meta_path, "wb") as f:
-        pickle.dump({"vocab_size": vocab_size}, f)
-
-    print("✅ Done")
-    print("train.bin:", train_path)
-    print("val.bin:", val_path)
-    print("meta.pkl:", meta_path)
-    print("total tokens:", total)
+        if current_texts:
+            sub_batches = [current_texts[j:j+BATCH_SIZE] for j in range(0, len(current_texts), BATCH_SIZE)]
+            results_list = list(executor.map(tokenize_batch, sub_batches))
+            for batch_results in results_list:
+                for tokens in batch_results:
+                    arr = np.array(tokens, dtype=dtype)
+                    if np.random.rand() < 0.01:
+                        f_val.write(arr.tobytes())
+                    else:
+                        f_train.write(arr.tobytes())
+                    count = len(tokens)
+                    total_tokens += count
+                    pbar.update(count)
+            
+    pbar.close()
+    print(f"Done. Total tokens: {total_tokens}")
 
 if __name__ == "__main__":
-    main()
+    process()
