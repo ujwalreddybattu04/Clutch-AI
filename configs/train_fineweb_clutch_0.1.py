@@ -4,7 +4,7 @@ out_dir = 'out-clutch-0.1'
 eval_interval = 500
 log_interval = 10
 eval_iters = 200
-wandb_log = True
+wandb_log = False
 wandb_project = 'clutch-0.1'
 wandb_run_name = 'clutch-0.1-gpt2-124M-10B'
 
