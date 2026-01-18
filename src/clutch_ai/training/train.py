@@ -260,7 +260,7 @@ def main():
 
     # Import model (your project)
     # Expecting: src/clutch_ai/models/gpt.py defines GPTConfig and GPT
-    repo_root = Path(__file__).resolve().parent
+    repo_root = Path(__file__).resolve().parents[3]
     src_dir = repo_root / "src"
     os.sys.path.insert(0, str(src_dir))
     try:
