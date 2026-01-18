@@ -1,4 +1,4 @@
-import os
+﻿import os
 import tqdm
 import numpy as np
 import tiktoken
@@ -7,7 +7,7 @@ from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
 
 # Configuration
-DATA_CACHE_DIR = os.path.join(os.path.dirname(__file__), "fineweb")
+DATA_CACHE_DIR = os.path.dirname(__file__)
 os.makedirs(DATA_CACHE_DIR, exist_ok=True)
 
 

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Clutch-AI | Pretraining runner (nanoGPT-style, config-driven)
 
 Single GPU (Kaggle):
@@ -171,7 +171,7 @@ def load_checkpoint(out_dir: Path, device: str):
 # -----------------------------
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/train_fineweb_clutch_0_1.py")
+    parser.add_argument("--config", default="config/train_fineweb.py")
     args, unknown = parser.parse_known_args()
 
     # Defaults (safe-ish baseline)
@@ -267,7 +267,7 @@ def main():
         from clutch_ai.models.gpt import GPTConfig, GPT
     except Exception as e:
         raise RuntimeError(
-            "❌ Could not import your model.\n"
+            "âŒ Could not import your model.\n"
             "Expected: src/clutch_ai/models/gpt.py with GPTConfig and GPT.\n"
             f"Import error: {e}"
         )
@@ -277,7 +277,7 @@ def main():
     get_batch = build_memmap_batcher(data_dir, cfg["block_size"], cfg["batch_size"], device)
     if get_batch is None:
         raise RuntimeError(
-            "❌ Dataset files not found.\n"
+            "âŒ Dataset files not found.\n"
             f"Expected these files:\n"
             f"  {data_dir / 'train.bin'}\n"
             f"  {data_dir / 'val.bin'}\n\n"
@@ -322,7 +322,7 @@ def main():
             print(f"Resuming from: {out_dir}")
         ckpt = load_checkpoint(out_dir, device)
         if ckpt is None:
-            raise RuntimeError(f"❌ init_from='resume' but no checkpoint found at {out_dir / 'ckpt.pt'}")
+            raise RuntimeError(f"âŒ init_from='resume' but no checkpoint found at {out_dir / 'ckpt.pt'}")
         # lock architecture to checkpoint
         ckpt_args = ckpt["model_args"]
         for k in ["n_layer", "n_head", "n_embd", "block_size", "bias", "vocab_size"]:
@@ -334,7 +334,7 @@ def main():
         best_val_loss = ckpt.get("best_val_loss", 1e9)
     elif isinstance(init_from, str) and init_from.startswith("gpt2"):
         if not hasattr(GPT, "from_pretrained"):
-            raise RuntimeError("❌ Your GPT class has no from_pretrained(). Use init_from='scratch' or 'resume'.")
+            raise RuntimeError("âŒ Your GPT class has no from_pretrained(). Use init_from='scratch' or 'resume'.")
         if master_process:
             print(f"Initializing from pretrained weights: {init_from}")
         model = GPT.from_pretrained(init_from, override_args={"dropout": cfg["dropout"]})
@@ -441,13 +441,13 @@ def main():
                 patience = 0
                 if cfg["always_save_checkpoint"] or iter_num > 0:
                     save_checkpoint(out_dir, raw_model, optimizer, model_args, iter_num, best_val_loss, cfg)
-                    print(f"💾 saved checkpoint: {out_dir / 'ckpt.pt'}")
+                    print(f"ðŸ’¾ saved checkpoint: {out_dir / 'ckpt.pt'}")
             else:
                 patience += 1
                 if early_patience > 0:
                     print(f"no improvement, patience {patience}/{early_patience}")
                     if patience >= early_patience:
-                        print("🛑 early stopping triggered")
+                        print("ðŸ›‘ early stopping triggered")
                         break
 
         if iter_num == 0 and cfg["eval_only"]:
@@ -504,7 +504,7 @@ def main():
     # final save
     if master_process:
         save_checkpoint(out_dir, raw_model, optimizer, model_args, iter_num, best_val_loss, cfg)
-        print(f"✅ finished. final checkpoint: {out_dir / 'ckpt.pt'}")
+        print(f"âœ… finished. final checkpoint: {out_dir / 'ckpt.pt'}")
 
     if ddp:
         destroy_process_group()
