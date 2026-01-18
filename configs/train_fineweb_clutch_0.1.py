@@ -11,8 +11,8 @@ wandb_run_name = 'clutch-0.1-gpt2-124M-10B'
 dataset = 'fineweb'
 init_from = 'scratch'   # use 'resume' only if you already have a checkpoint in out_dir
 
-batch_size = 10
-block_size = 1024
+batch_size = 4
+block_size = 512
 gradient_accumulation_steps = 48
 
 max_iters = 20000
