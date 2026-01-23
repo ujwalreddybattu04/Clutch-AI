@@ -29,4 +29,4 @@ warmup_iters = 2000
 
 device = 'cuda'
 compile = False
-dtype = 'bfloat16'
+dtype = 'float16'
