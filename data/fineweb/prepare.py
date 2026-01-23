@@ -13,6 +13,7 @@ os.makedirs(DATA_CACHE_DIR, exist_ok=True)
 
 dataset_name = "HuggingFaceFW/fineweb-edu"
 dataset_config = "sample-10BT"
+MAX_TOKENS = 7_000_000_000
 split = "train"
 
 
