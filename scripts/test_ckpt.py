@@ -22,7 +22,7 @@ model.eval()
 print("Loaded! iter_num =", ckpt.get("iter_num", "unknown"))
 
 enc = tiktoken.get_encoding("gpt2")
-prompt = "The future of AI is"
+prompt = "Python is a popular programming language that"
 idx = torch.tensor([enc.encode(prompt)], dtype=torch.long, device=device)
 
 with torch.no_grad():
