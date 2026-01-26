@@ -29,7 +29,7 @@ bias = False
 dropout = 0.0
 
 # Train steps (SFT is small dataset)
-max_iters = 3000
+max_iters = 7002
 
 # eval + logging
 eval_interval = 200
