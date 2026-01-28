@@ -28,7 +28,7 @@ print("Loaded! iter_num =", ckpt.get("iter_num", "unknown"))
 
 enc = tiktoken.get_encoding("gpt2")
 
-instruction = "when was google founded?"
+instruction = "Explain the theory of relativity in simple terms."
 prompt = f"### Instruction:\n{instruction}\n\n### Response:\n"
 
 idx = torch.tensor([enc.encode(prompt)], dtype=torch.long, device=device)
