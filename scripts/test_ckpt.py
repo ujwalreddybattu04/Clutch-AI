@@ -28,7 +28,7 @@ print("Loaded! iter_num =", ckpt.get("iter_num", "unknown"))
 
 enc = tiktoken.get_encoding("gpt2")
 
-instruction = "If today is Monday, what day will it be after 10 days?"
+instruction = "You have 3 apples. You give 2 to your friend. How many apples do you have?"
 prompt = f"### Instruction:\n{instruction}\n\n### Response:\n"
 
 idx = torch.tensor([enc.encode(prompt)], dtype=torch.long, device=device)
