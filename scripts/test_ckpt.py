@@ -37,8 +37,8 @@ with torch.no_grad():
     out = model.generate(
         idx,
         max_new_tokens=200,
-        temperature=0.8,   # a bit higher so it actually answers
-        top_k=200,
+        temperature=0.6,   # a bit higher so it actually answers
+        top_k=100,          # a bit higher so it actually answers
         stop_idx=enc.eot_token
     )
 
