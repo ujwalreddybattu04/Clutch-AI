@@ -36,7 +36,7 @@ idx = torch.tensor([enc.encode(prompt)], dtype=torch.long, device=device)
 with torch.no_grad():
     out = model.generate(
         idx,
-        max_new_tokens=200,
+        max_new_tokens=500,
         temperature=0.6,   # a bit higher so it actually answers
         top_k=100,          # a bit higher so it actually answers
         stop_idx=enc.eot_token
