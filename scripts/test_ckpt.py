@@ -28,7 +28,7 @@ print("Loaded! iter_num =", ckpt.get("iter_num", "unknown"))
 
 enc = tiktoken.get_encoding("gpt2")
 
-instruction = "What is unSuperised learning??"
+instruction = "What is Superised Learning??"
 prompt = f"### Instruction:\n{instruction}\n\n### Response:\n"
 
 idx = torch.tensor([enc.encode(prompt)], dtype=torch.long, device=device)
@@ -38,7 +38,7 @@ with torch.no_grad():
         idx,
         max_new_tokens=500,
         temperature=0.6,   # a bit higher so it actually answers
-        top_k=100,          # a bit higher so it actually answers
+        top_k=200,          # a bit higher so it actually answers
         stop_idx=enc.eot_token
     )
 
