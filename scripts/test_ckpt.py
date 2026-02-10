@@ -37,14 +37,13 @@ with torch.no_grad():
     out = model.generate(
         idx,
         max_new_tokens=700,
-        temperature=0.6,   # a bit higher so it actually answers
+        temperature=0.7,   # a bit higher so it actually answers
         top_k=200,          # a bit higher so it actually answers
         stop_idx=enc.eot_token
     )
 
 full_text = enc.decode(out[0].tolist())
 
-# ✅ print ONLY the new generated part (after the prompt)
 generated = full_text[len(prompt):]
 generated = generated.split("<|endoftext|>")[0].strip()
 
