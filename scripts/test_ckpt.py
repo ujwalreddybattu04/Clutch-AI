@@ -28,7 +28,7 @@ print("Loaded! iter_num =", ckpt.get("iter_num", "unknown"))
 
 enc = tiktoken.get_encoding("gpt2")
 
-instruction = "What is Nasa?"
+instruction = "who is the president of usa?"
 prompt = f"### Instruction:\n{instruction}\n\n### Response:\n"
 
 idx = torch.tensor([enc.encode(prompt)], dtype=torch.long, device=device)
@@ -36,9 +36,9 @@ idx = torch.tensor([enc.encode(prompt)], dtype=torch.long, device=device)
 with torch.no_grad():
     out = model.generate(
         idx,
-        max_new_tokens=700,
-        temperature=0.9,   
-        top_k=200,          
+        max_new_tokens=256,
+        temperature=0.7,
+        top_k=40,          # was 500 - too high for a small model; 40 is much better
         stop_idx=enc.eot_token
     )
 
