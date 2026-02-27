@@ -103,7 +103,14 @@ def setup_ddp(backend: str, device: str):
 # -----------------------------
 def build_memmap_batcher(data_dir: Path, block_size: int, batch_size: int, device: str):
     train_bin = data_dir / "train.bin"
-    val_bin = data_dir / "val.bin"
+    val_bin   = data_dir / "val.bin"
+    # Optional SFT label files (mask prompt tokens so loss is only on response)
+    train_labels_bin = data_dir / "train_labels.bin"
+    val_labels_bin   = data_dir / "val_labels.bin"
+    use_labels = train_labels_bin.exists() and val_labels_bin.exists()
+
+    if use_labels:
+        print(f"[data] Found label-masked bins — using SFT label masking.")
 
     if not train_bin.exists() or not val_bin.exists():
         return None
@@ -112,11 +119,18 @@ def build_memmap_batcher(data_dir: Path, block_size: int, batch_size: int, devic
 
     def get_batch(split: str):
         bin_path = train_bin if split == "train" else val_bin
-        # recreate to avoid memmap growth issues on some environments
         data = np.memmap(str(bin_path), dtype=np.uint16, mode="r")
         ix = torch.randint(0, len(data) - block_size - 1, (batch_size,))
         x = torch.stack([torch.from_numpy((data[i:i + block_size]).astype(np.int64)) for i in ix])
-        y = torch.stack([torch.from_numpy((data[i + 1:i + 1 + block_size]).astype(np.int64)) for i in ix])
+
+        if use_labels:
+            # SFT: use label file for targets (-1 = ignore prompt tokens in loss)
+            lbl_path = train_labels_bin if split == "train" else val_labels_bin
+            labels = np.memmap(str(lbl_path), dtype=np.int32, mode="r")
+            y = torch.stack([torch.from_numpy(labels[i + 1:i + 1 + block_size].copy()).long() for i in ix])
+        else:
+            # Standard LM: next-token prediction
+            y = torch.stack([torch.from_numpy((data[i + 1:i + 1 + block_size]).astype(np.int64)) for i in ix])
 
         if device_type == "cuda":
             x = x.pin_memory().to(device, non_blocking=True)
@@ -218,13 +232,18 @@ def main():
         "compile": False,
         # early stopping (optional)
         "early_stop_patience": 0,  # 0 disables
+        # SFT-specific (ignored during pretraining)
+        "init_from_dir": "",     # if set, load base weights from this folder instead of out_dir
+        "reset_optimizer": False, # True = fresh optimizer schedule (use for SFT)
     }
 
     # Load your config file and override defaults
     user_cfg = load_py_config(args.config)
-    for k in list(cfg.keys()):
-        if hasattr(user_cfg, k):
-            cfg[k] = getattr(user_cfg, k)
+    # Copy ALL keys from user config (not just ones already in defaults)
+    for k in dir(user_cfg):
+        if k.startswith("_"):
+            continue
+        cfg[k] = getattr(user_cfg, k)
 
     # Allow quick CLI overrides too: --batch_size=1 etc.
     apply_cli_overrides(cfg, unknown)
@@ -318,9 +337,12 @@ def main():
         gconf = GPTConfig(**model_args)
         model = GPT(gconf)
     elif init_from == "resume":
+        # Support init_from_dir for SFT: load base weights from a different folder
+        _ifd = cfg.get("init_from_dir", "")
+        load_dir = Path(_ifd) if _ifd else out_dir
         if master_process:
-            print(f"Resuming from: {out_dir}")
-        ckpt = load_checkpoint(out_dir, device)
+            print(f"Loading checkpoint from: {load_dir}")
+        ckpt = load_checkpoint(load_dir, device)
         if ckpt is None:
             raise RuntimeError(f"âŒ init_from='resume' but no checkpoint found at {out_dir / 'ckpt.pt'}")
         # lock architecture to checkpoint
@@ -330,8 +352,15 @@ def main():
         gconf = GPTConfig(**model_args)
         model = GPT(gconf)
         model.load_state_dict(ckpt["model"])
-        iter_num = ckpt.get("iter_num", 0)
-        best_val_loss = ckpt.get("best_val_loss", 1e9)
+        # Only restore iteration counters when continuing the exact same run
+        if cfg.get("reset_optimizer", False) or str(load_dir) != str(out_dir):
+            if master_process:
+                print("[info] Fresh optimizer schedule (SFT or different run).")
+            iter_num = 0
+            best_val_loss = 1e9
+        else:
+            iter_num = ckpt.get("iter_num", 0)
+            best_val_loss = ckpt.get("best_val_loss", 1e9)
     elif isinstance(init_from, str) and init_from.startswith("gpt2"):
         if not hasattr(GPT, "from_pretrained"):
             raise RuntimeError("âŒ Your GPT class has no from_pretrained(). Use init_from='scratch' or 'resume'.")
@@ -361,8 +390,8 @@ def main():
             weight_decay=cfg["weight_decay"],
         )
 
-    # restore optimizer if resume
-    if init_from == "resume":
+    # restore optimizer state only when continuing the same run (not SFT with reset)
+    if init_from == "resume" and not cfg.get("reset_optimizer", False) and str(Path(cfg.get("init_from_dir", cfg["out_dir"]))) == str(out_dir):
         optimizer.load_state_dict(ckpt["optimizer"])
 
     # AMP scaler (float16 only)

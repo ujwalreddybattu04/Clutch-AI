@@ -294,30 +294,76 @@ class GPT(nn.Module):
         return mfu
 
     @torch.no_grad()
-    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None, stop_idx=None):
+    def generate(
+        self,
+        idx,
+        max_new_tokens,
+        temperature=1.0,
+        top_k=None,
+        top_p=None,
+        repetition_penalty=1.0,
+        stop_idx=None,
+        stream_callback=None,
+    ):
         """
-        Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete
-        the sequence max_new_tokens times, feeding the predictions back into the model each time.
-        Most likely you'll want to make sure to be in model.eval() mode of operation for this.
+        Generate tokens autoregressively.
+
+        Args:
+            idx:                LongTensor (b, t) — conditioning sequence
+            max_new_tokens:     int — max tokens to generate
+            temperature:        float — sampling temperature (higher = more random)
+            top_k:              int | None — keep only top-k logits
+            top_p:              float | None — nucleus sampling threshold (0.0–1.0)
+            repetition_penalty: float — penalize repeated tokens (1.0 = off, >1.0 = penalize)
+            stop_idx:           int | None — stop when this token is generated
+            stream_callback:    callable | None — called with each new token id for streaming
         """
         for _ in range(max_new_tokens):
-            # if the sequence context is growing too long we must crop it at block_size
+            # crop context to block_size
             idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
-            # forward the model to get the logits for the index in the sequence
+
+            # forward pass
             logits, _ = self(idx_cond)
-            # pluck the logits at the final step and scale by desired temperature
-            logits = logits[:, -1, :] / temperature
-            # optionally crop the logits to only the top k options
+            logits = logits[:, -1, :]  # (b, vocab)
+
+            # --- Repetition penalty ---
+            if repetition_penalty != 1.0:
+                for token_id in set(idx[0].tolist()):
+                    if logits[0, token_id] > 0:
+                        logits[0, token_id] /= repetition_penalty
+                    else:
+                        logits[0, token_id] *= repetition_penalty
+
+            # temperature scaling
+            logits = logits / temperature
+
+            # --- Top-k filtering ---
             if top_k is not None:
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
                 logits[logits < v[:, [-1]]] = -float('Inf')
-            # apply softmax to convert logits to (normalized) probabilities
+
+            # --- Top-p (nucleus) filtering ---
+            if top_p is not None and top_p < 1.0:
+                sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+                cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
+                # remove tokens with cumulative prob above threshold
+                sorted_mask = cumulative_probs - F.softmax(sorted_logits, dim=-1) >= top_p
+                sorted_logits[sorted_mask] = -float('Inf')
+                # scatter back to original indexing
+                logits = sorted_logits.scatter(1, sorted_indices, sorted_logits)
+
+            # sample
             probs = F.softmax(logits, dim=-1)
-            # sample from the distribution
             idx_next = torch.multinomial(probs, num_samples=1)
-            # append sampled index to the running sequence and continue
+
+            # append to sequence
             idx = torch.cat((idx, idx_next), dim=1)
-            # check for stop token
+
+            # streaming callback
+            if stream_callback is not None:
+                stream_callback(idx_next.item())
+
+            # stop token
             if stop_idx is not None and idx_next.item() == stop_idx:
                 break
 
