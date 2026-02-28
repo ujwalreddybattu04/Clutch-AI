@@ -467,13 +467,13 @@ train_dataset = train_dataset.map(
 )
 
 # Remove empty entries
-train_dataset = train_dataset.filter(lambda x: len(x["text"]) > 0)
+train_dataset = train_dataset.filter(lambda x: len(x["input_ids"]) > 0)
 print(f"✅ Formatted {len(train_dataset):,} examples")
 
 # Show a sample
 print("\n📋 Sample formatted example:")
 print("-" * 60)
-print(train_dataset[0]["text"][:500])
+print(train_dataset[0]["input_ids"][:50])
 print("...")
 
 
