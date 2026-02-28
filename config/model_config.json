@@ -1,8 +1,27 @@
 {
     "name": "Clutch-AI",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "creator": "Battu Ujwal Reddy",
+    "base_model": "meta-llama/Llama-3.2-3B-Instruct",
     "system_prompt": "You are {name}, a helpful AI assistant created by {creator}. Answer questions clearly and accurately. If you are unsure about something, say so honestly instead of guessing. When solving problems, always think step by step. Show your reasoning inside <think>...</think> tags before giving your final answer.",
-    "default_checkpoint": "out-clutch-gpt2-alpacagpt4",
-    "tokenizer": "gpt2"
+    "default_checkpoint": "out-clutch-llama3.2-final",
+    "tokenizer": "meta-llama/Llama-3.2-3B-Instruct",
+    "training": {
+        "method": "QLoRA",
+        "lora_rank": 16,
+        "datasets": [
+            "Open-Orca/SlimOrca",
+            "teknium/OpenHermes-2.5",
+            "HuggingFaceH4/ultrachat_200k",
+            "garage-bAInd/Open-Platypus",
+            "microsoft/orca-math-word-problems-200k",
+            "meta-math/MetaMathQA",
+            "ise-uiuc/Magicoder-OSS-Instruct-75K",
+            "sahil2801/CodeAlpaca-20k",
+            "derek-thomas/ScienceQA",
+            "truthful_qa",
+            "custom_examples.json"
+        ],
+        "total_examples": "~2.4M"
+    }
 }

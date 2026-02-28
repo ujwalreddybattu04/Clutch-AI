@@ -1,130 +1,112 @@
-# Clutch-AI
+# Clutch-AI v0.3
 
-A GPT-style language model trained from scratch and instruction-tuned for conversational AI. Built on GPT-2 Medium (350M parameters) and fine-tuned on Alpaca-GPT4 data.
+A powerful, instruction-tuned AI assistant built by upgrading from GPT-2 to **Meta's Llama 3.2 3B Instruct**. Fine-tuned on a world-class mix of ~2.4 million examples (general knowledge, coding, math, reasoning, and multi-turn conversations).
 
 > Created by **Battu Ujwal Reddy**
 
 ---
 
-## Quick Start
+## 🌟 What's New in v0.3 (The Llama Upgrade)
 
+- **New Base Model**: Upgraded from GPT-2 Medium (350M) to Meta Llama 3.2 Instruct (3B).
+- **Massive Dataset Mix**: Fine-tuned on ~2.4M high-quality examples instead of just 52K.
+  - *SlimOrca* (General GPT-4 quality)
+  - *OpenHermes 2.5* (Diverse tasks)
+  - *UltraChat 200K* (Conversations)
+  - *Open-Platypus* (Reasoning)
+  - *Orca-Math & MetaMathQA* (Math)
+  - *MagicCoder & Code-Alpaca* (Coding)
+  - *ScienceQA* (Science)
+  - *TruthfulQA & Custom Datasets* (Identity and Anti-hallucination)
+- **Kaggle-Optimized Training**: Uses 4-bit QLoRA and Unsloth for blazing fast, low-memory training on a Kaggle free T4 GPU. Checkpoint auto-resume supported!
+
+---
+
+## 🚀 Quick Start (Inference)
+
+**1. Install dependencies:**
 ```bash
-git clone https://github.com/ujwalreddybattu04/Clutch-AI
-cd Clutch-AI
 pip install -r requirements.txt
-python scripts/chat.py
 ```
+
+**2. Chat with the new Llama 3.2 model:**
+```bash
+python scripts/chat_llama.py
+```
+
+*Note: Make sure you have downloaded your trained model from Kaggle and placed it in the `out-clutch-llama3.2-final/merged` directory.*
+
+### Chat Options:
+```bash
+# Custom sampling
+python scripts/chat_llama.py --temp 0.8 --top_k 50 --top_p 0.9 --rep_pen 1.2
+
+# Single-shot prompt
+python scripts/chat_llama.py --prompt "Write a Python script to scrape a website."
+
+# Disable streaming or hide <think> blocks
+python scripts/chat_llama.py --no-stream --hide-thinking
+```
+
+> **For Legacy GPT-2 Models:**
+> Use `python scripts/chat.py` (the old script) for any GPT-2 checkpoints.
 
 ---
 
-## Features
+## 🏋️‍♂️ Training on Kaggle
 
-- **Chain-of-thought reasoning** — model thinks step-by-step inside `<think>...</think>` tags before answering
-- **Streaming output** — tokens appear in real-time as they're generated
-- **Conversation history** — multi-turn context for follow-up questions
-- **Repetition penalty** — prevents repetitive loops in generation
-- **Top-p (nucleus) sampling** — industry-standard sampling alongside top-k
-- **Colored terminal UI** — distinct colors for user vs AI responses
-- **Response stats** — token count, generation time, tokens/sec after each response
-- **System prompt** — built-in identity and behavior guidelines
+This project is configured to be trained on Kaggle using their free T4 GPUs.
 
----
-
-## Usage
-
-**Interactive chat:**
-```bash
-python scripts/chat.py
-```
-
-**Sampling options:**
-```bash
-python scripts/chat.py --temp 0.8 --top_k 50          # adjust temperature & top-k
-python scripts/chat.py --top_p 0.9 --rep_pen 1.3      # nucleus sampling + repetition penalty
-python scripts/chat.py --no-stream                     # disable streaming (print all at once)
-python scripts/chat.py --hide-thinking                 # hide reasoning, show only final answer
-python scripts/chat.py --history-turns 5               # keep 5 turns of conversation context
-```
-
-**Single prompt (non-interactive):**
-```bash
-python scripts/chat.py --prompt "Explain quantum computing"
-```
-
-**Use a specific checkpoint:**
-```bash
-python scripts/chat.py --ckpt out-clutch-gpt2-alpacagpt4/ckpt.pt
-python scripts/chat.py --base   # use base pretrained model
-```
+1. **HuggingFace Setup:**
+   - Create an account on HuggingFace.
+   - Accept the license for `meta-llama/Llama-3.2-3B-Instruct`.
+   - Create a Read access token.
+2. **Kaggle Setup:**
+   - Create a new notebook with GPU T4 x2 accelerator.
+   - Add your HF token to Kaggle Secrets as `HF_TOKEN`.
+   - Copy the contents of `notebooks/train_llama_kaggle.py` into the notebook.
+   - Run all cells.
+3. **Resume Training:**
+   - The dataset is huge (~2.4M). Kaggle limits sessions to 30 hours. The notebook automatically saves checkpoints every 500 steps. If it stops, just Run All again to resume!
 
 ---
 
-## Training
+## 📁 Project Layout
 
-**Instruction tuning (recommended — starts from GPT-2 Medium):**
-```bash
-# Step 1: Prepare data (downloads Alpaca-GPT4 + adds identity examples)
-python data/prepare_alpaca_gpt4.py
-
-# Step 2: Fine-tune
-python train.py config/train_alpaca_sft.py
-```
-
-**Override hyperparameters from CLI:**
-```bash
-python train.py config/train_alpaca_sft.py --learning_rate=3e-5 --max_iters=8000
-```
-
-Config files are plain Python — every hyperparameter is overridable.
-
----
-
-## Project Layout
-
-```
+```text
 Clutch-AI/
 ├── config/
-│   ├── train_fineweb.py            # pretraining config
-│   └── train_alpaca_sft.py         # instruction tuning config
-├── data/
-│   ├── alpaca_gpt4/                # SFT data with label masking
-│   └── prepare_alpaca_gpt4.py      # data preparation script
-├── src/clutch_ai/
-│   ├── models/gpt.py               # model architecture (GPT-2)
-│   └── training/train.py           # training loop (DDP-ready)
+│   ├── model_config.json           # Model identity, settings, and full dataset config
+│   ├── custom_examples.json        # Your custom identity & safety examples
+│   └── train_alpaca_sft.py         # (Legacy) GPT-2 fine-tuning config
+├── notebooks/
+│   ├── train_llama_kaggle.py       # 🔥 NEW: v0.3 Llama 3.2 QLoRA training notebook
+│   └── train_kaggle.py             # (Legacy) GPT-2 manual training
 ├── scripts/
-│   ├── chat.py                     # inference + chat script
-│   └── test_ckpt.py                # checkpoint testing
-├── out-clutch-gpt2-alpacagpt4/     # best checkpoint (default)
-└── train.py                        # training entry point
+│   ├── chat_llama.py               # 🔥 NEW: Llama 3.2 chat inference
+│   ├── chat.py                     # (Legacy) GPT-2 chat inference
+│   ├── test_ckpt_llama.py          # Quick checkpoint tester for Llama
+│   └── test_ckpt.py                # Quick checkpoint tester for GPT-2
+├── data/
+│   └── prepare_alpaca_gpt4.py      # (Legacy) Data prep for GPT-2
+├── src/clutch_ai/                  # (Legacy) Custom nanoGPT implementation
+└── requirements.txt                # Updated dependencies
 ```
 
 ---
 
-## Model
+## 🧠 Model Specs (v0.3)
 
-| | |
+| Feature | Detail |
 |---|---|
-| Architecture | GPT-2 (decoder-only transformer) |
-| Base weights | GPT-2 Medium — 350M parameters |
-| Context length | 512 tokens |
-| Tokenizer | GPT-2 BPE via tiktoken |
-| Fine-tuning data | Alpaca-GPT4 (52K instructions) |
-| Sampling | Top-k, Top-p (nucleus), temperature, repetition penalty |
-| Hardware | NVIDIA RTX 4050 (6GB) |
+| Architecture | Meta Llama 3.2 |
+| Size | 3 Billion Parameters |
+| Context Length | 2048 tokens (training setup) |
+| Training Method | SFT + 4-bit QLoRA via Unsloth |
+| Hardware Used | Kaggle Dual T4 GPUs |
+| Sampling | Top-k, Top-p, temperature, repetition penalty |
 
 ---
 
-## Checkpoints
-
-| Path | Description |
-|------|-------------|
-| `out-clutch-0.1/` | Pretrained from scratch on FineWeb |
-| `out-clutch-sft-alpaca/` | SFT on scratch base (weak) |
-| `out-clutch-gpt2-alpacagpt4/` | SFT on GPT-2 Medium — **best quality (default)** |
-
----
-
-## License
-
-MIT
+## 📄 License
+MIT License (Refer to specific dataset and base model licenses for fair use policies).

@@ -21,6 +21,11 @@ out-*/
 *.pt
 *.bin
 *.safetensors
+clutch-ai-v*/
+clutch-ai-llama*/
+
+# HuggingFace Cache
+.cache/huggingface/
 
 # Data binary files
 data/**/*.bin
