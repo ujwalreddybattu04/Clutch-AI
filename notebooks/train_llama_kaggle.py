@@ -50,7 +50,7 @@ import os
 os.chdir('/kaggle/working')
 
 if not os.path.exists('/kaggle/working/Clutch-AI'):
-    !git clone https://github.com/ujwalreddybattu04/Clutch-AI.git
+    subprocess.check_call(["git", "clone", "https://github.com/ujwalreddybattu04/Clutch-AI.git"])
     print("✅ Repo cloned!")
 else:
     print("✅ Repo already exists, skipping clone.")
