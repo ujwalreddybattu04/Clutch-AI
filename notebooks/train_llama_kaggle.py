@@ -1,7 +1,7 @@
 """
 ╔══════════════════════════════════════════════════════════════════╗
-║   Clutch-AI v0.3 — Llama 3.2 3B Instruct Fine-Tuning          ║
-║   Industry-Grade Training on Kaggle Free GPU                    ║
+║   Clutch-AI v1.0.0 — Fine-Tuning Pipeline                        ║
+║   Industry-Grade Training on Kaggle Free GPU                     ║
 ╚══════════════════════════════════════════════════════════════════╝
 
 Base Model : meta-llama/Llama-3.2-3B-Instruct
@@ -30,7 +30,7 @@ RESUME TRAINING:
 import os
 os.chdir('/kaggle/working')
 
-# Install Unsloth (2x faster training, 70% less memory)
+# Install dependencies
 !pip install -q --no-deps packaging ninja einops flash-attn xformers trl peft accelerate bitsandbytes
 !pip install -q "unsloth[kaggle-new] @ git+https://github.com/unslothai/unsloth.git"
 !pip install -q datasets sentencepiece protobuf
@@ -451,7 +451,7 @@ from trl import SFTTrainer
 from transformers import TrainingArguments
 from unsloth import is_bfloat16_supported
 
-OUTPUT_DIR = "/kaggle/working/Clutch-AI/out-clutch-llama3.2"
+OUTPUT_DIR = "/kaggle/working/Clutch-AI/out-clutch-1.0.0"
 
 training_args = TrainingArguments(
     output_dir=OUTPUT_DIR,
@@ -542,7 +542,7 @@ else:
     print("🆕 Starting fresh training run...")
 
 print(f"\n{'='*60}")
-print(f"🚀 TRAINING STARTED — Clutch-AI v0.3")
+print(f"🚀 TRAINING STARTED — Clutch-AI v1.0.0")
 print(f"{'='*60}\n")
 
 trainer_stats = trainer.train(resume_from_checkpoint=resume_from)
@@ -558,7 +558,7 @@ print(f"  Steps done   : {trainer_stats.metrics.get('train_steps', 'N/A')}")
 # ════════════════════════════════════════════════════════════════
 # CELL 11: Save the Fine-Tuned Model
 # ════════════════════════════════════════════════════════════════
-SAVE_DIR = "/kaggle/working/clutch-ai-llama3.2-final"
+SAVE_DIR = "/kaggle/working/clutch-ai-1.0.0-final"
 
 print("💾 Saving LoRA adapter...")
 model.save_pretrained(f"{SAVE_DIR}/lora-adapter")
@@ -575,7 +575,7 @@ print(f"✅ Model saved to {SAVE_DIR}")
 
 # Also save to the Clutch-AI output dir
 import shutil
-merged_ckpt_dir = "/kaggle/working/Clutch-AI/out-clutch-llama3.2-final"
+merged_ckpt_dir = "/kaggle/working/Clutch-AI/out-clutch-1.0.0-final"
 if os.path.exists(merged_ckpt_dir):
     shutil.rmtree(merged_ckpt_dir)
 shutil.copytree(f"{SAVE_DIR}/merged", merged_ckpt_dir)
@@ -588,7 +588,7 @@ print(f"✅ Also copied to {merged_ckpt_dir}")
 from transformers import pipeline
 
 print("\n" + "="*60)
-print("🧪 TESTING CLUTCH-AI v0.3")
+print("🧪 TESTING CLUTCH-AI v1.0.0")
 print("="*60 + "\n")
 
 # Switch to inference mode
@@ -642,22 +642,22 @@ for prompt in test_prompts:
 # ════════════════════════════════════════════════════════════════
 import shutil
 
-output_zip = "/kaggle/working/clutch-ai-v0.3-llama3.2"
+output_zip = "/kaggle/working/clutch-ai-v1.0.0"
 print("📦 Packaging model for download...")
 
 shutil.make_archive(output_zip, 'zip', f"{SAVE_DIR}/merged")
 
 zip_size = os.path.getsize(f"{output_zip}.zip") / (1024 * 1024 * 1024)
 print(f"\n{'='*60}")
-print(f"✅ CLUTCH-AI v0.3 READY!")
+print(f"✅ CLUTCH-AI v1.0.0 READY!")
 print(f"{'='*60}")
-print(f"  📦 Download: clutch-ai-v0.3-llama3.2.zip ({zip_size:.1f} GB)")
+print(f"  📦 Download: clutch-ai-v1.0.0.zip ({zip_size:.1f} GB)")
 print(f"  📍 Location: Kaggle Output tab")
-print(f"  🏷️  Model: {MODEL_IDENTITY} v0.3 by {CREATOR}")
+print(f"  🏷️  Model: {MODEL_IDENTITY} v1.0.0 by {CREATOR}")
 print(f"  🧠 Base: Meta Llama 3.2 3B Instruct")
 print(f"  📚 Trained on: ~2.4M examples across 11 datasets")
 print(f"{'='*60}")
 print(f"\n  To use locally:")
 print(f"  1. Download the zip from Kaggle Output")
-print(f"  2. Extract to Clutch-AI/out-clutch-llama3.2-final/")
+print(f"  2. Extract to Clutch-AI/out-clutch-1.0.0-final/")
 print(f"  3. Run: python scripts/chat.py")

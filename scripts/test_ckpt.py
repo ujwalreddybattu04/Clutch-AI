@@ -1,10 +1,9 @@
 """
-Quick sanity check for the Llama 3.2 checkpoint.
-Loads config from config/model_config.json, then tests the checkpoint.
+Quick sanity check for the Clutch-AI checkpoint.
 
 Usage:
-    python scripts/test_ckpt_llama.py
-    python scripts/test_ckpt_llama.py --ckpt path/to/merged_model
+    python scripts/test_ckpt.py
+    python scripts/test_ckpt.py --ckpt path/to/merged_model
 """
 import sys
 import json
@@ -39,7 +38,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_path = Path(args.ckpt)
 
-    print(f"Model: {CFG['name']} by {CFG['creator']} (v{CFG.get('version', '0.3.0')})")
+    print(f"Model: {CFG['name']} by {CFG['creator']} (v{CFG.get('version', '1.0.0')})")
     print(f"Checkpoint: {ckpt_path}")
     print(f"Device: {device}")
 

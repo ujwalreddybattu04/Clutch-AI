@@ -1,11 +1,11 @@
 """
-Clutch-AI v0.3 — Llama 3.2 Interactive Chat & Inference
+Clutch-AI v1.0.0 — Interactive Chat & Inference
 ==========================================================
 Usage:
-  python scripts/chat_llama.py                            # interactive chat
-  python scripts/chat_llama.py --prompt "your question"   # single-shot mode
-  python scripts/chat_llama.py --temp 0.8 --top_k 50     # custom sampling
-  python scripts/chat_llama.py --no-stream                # disable streaming
+  python scripts/chat.py                            # interactive chat
+  python scripts/chat.py --prompt "your question"   # single-shot mode
+  python scripts/chat.py --temp 0.8 --top_k 50      # custom sampling
+  python scripts/chat.py --no-stream                # disable streaming
 
 Requirements:
   pip install transformers accelerate torch sentencepiece protobuf
@@ -32,7 +32,7 @@ def load_config():
     if not config_path.exists():
         return {
             "name": "Clutch-AI",
-            "version": "0.3.0",
+            "version": "1.0.0",
             "creator": "Unknown",
             "system_prompt_resolved": "You are a helpful AI assistant.",
             "default_checkpoint": "out-clutch-llama3.2-final",
@@ -46,7 +46,7 @@ def load_config():
     return cfg
 
 _CFG = load_config()
-VERSION       = _CFG.get("version", "0.3.0")
+VERSION       = _CFG.get("version", "1.0.0")
 CREATOR       = _CFG.get("creator", "Unknown")
 MODEL_NAME    = _CFG.get("name", "Clutch-AI")
 SYSTEM_PROMPT = _CFG.get("system_prompt_resolved", "You are a helpful AI assistant.")
@@ -68,7 +68,6 @@ def colored(text: str, color: str) -> str:
 
 # ─── Model Loading ───────────────────────────────────────────────
 def load_model(model_path: Path, device: str):
-    """Load the fine-tuned Llama 3.2 model."""
     print(colored(f"  Loading model: {model_path}", Colors.DIM))
 
     tokenizer = AutoTokenizer.from_pretrained(
@@ -207,7 +206,6 @@ def print_banner(args):
     print(colored("  ╔══════════════════════════════════════════╗", Colors.CYAN))
     print(colored("  ║         ", Colors.CYAN) + colored("Clutch-AI", Colors.BOLD + Colors.CYAN) + colored(f" v{VERSION}", Colors.DIM) + colored("                  ║", Colors.CYAN))
     print(colored(f"  ║     Created by {CREATOR}      ║", Colors.CYAN))
-    print(colored("  ║     Powered by Llama 3.2 3B 🦙           ║", Colors.CYAN))
     print(colored("  ╚══════════════════════════════════════════╝", Colors.CYAN))
     print()
     show_think = not getattr(args, 'hide_thinking', False)
@@ -219,7 +217,7 @@ def print_banner(args):
 
 # ─── Main ────────────────────────────────────────────────────────
 def main():
-    parser = argparse.ArgumentParser(description="Clutch-AI v0.3 — Llama 3.2 Chat")
+    parser = argparse.ArgumentParser(description="Clutch-AI Chat Inference")
     parser.add_argument("--prompt", type=str, default=None,
                         help="Single prompt (non-interactive)")
     parser.add_argument("--temp", type=float, default=0.7,
