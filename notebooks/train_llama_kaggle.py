@@ -119,7 +119,7 @@ print(f"✅ LoRA applied! Trainable: {trainable/1e6:.1f}M / {total/1e6:.1f}M ({1
 import json
 
 # Load model identity config
-config_path = "/kaggle/working/Clutch-AI/config/model_config.json"
+config_path = "/kaggle/working/Clutch-AI/config/llama_3b_config.json"
 with open(config_path, "r") as f:
     model_config = json.load(f)
 
@@ -660,4 +660,4 @@ print(f"{'='*60}")
 print(f"\n  To use locally:")
 print(f"  1. Download the zip from Kaggle Output")
 print(f"  2. Extract to Clutch-AI/out-clutch-llama3.2-final/")
-print(f"  3. Run: python scripts/chat_llama.py")
+print(f"  3. Run: python scripts/chat.py")
