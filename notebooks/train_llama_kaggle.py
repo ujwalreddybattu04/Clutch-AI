@@ -500,7 +500,6 @@ training_args = TrainingArguments(
     max_grad_norm=1.0,
     seed=42,
     dataloader_num_workers=2,
-    group_by_length=True,
     report_to="none",
 )
 
