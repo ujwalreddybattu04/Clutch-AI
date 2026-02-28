@@ -38,7 +38,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_path = Path(args.ckpt)
 
-    print(f"Model: {CFG['name']} by {CFG['creator']} (v{CFG.get('version', '1.0.0')})")
+    print(f"Model: {CFG.get('name', 'Clutch-AI')} by {CFG.get('creator', 'Clutch Group')} (v{CFG.get('version', '1.0.0')})")
     print(f"Checkpoint: {ckpt_path}")
     print(f"Device: {device}")
 

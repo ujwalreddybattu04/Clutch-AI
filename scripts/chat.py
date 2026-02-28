@@ -33,7 +33,7 @@ def load_config():
         return {
             "name": "Clutch-AI",
             "version": "1.0.0",
-            "creator": "Unknown",
+            "creator": "Clutch Group",
             "system_prompt_resolved": "You are a helpful AI assistant.",
             "default_checkpoint": "out-clutch-llama3.2-final",
         }

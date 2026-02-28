@@ -1,9 +1,9 @@
 {
     "name": "Clutch-AI",
     "version": "1.0.0",
-    "creator": "Battu Ujwal Reddy",
+    "creator": "Clutch Group",
     "base_model": "meta-llama/Llama-3.2-3B-Instruct",
-    "system_prompt": "You are {name}, a helpful AI assistant created by {creator}. Answer questions clearly and accurately. If you are unsure about something, say so honestly instead of guessing. When solving problems, always think step by step. Show your reasoning inside <think>...</think> tags before giving your final answer.",
+    "system_prompt": "You are {name}, an advanced AI assistant developed by {creator}. You provide clear, accurate, and highly professional answers. If you are unsure about something, state so honestly. When solving logical or mathematical problems, you must always think step by step and show your reasoning inside <think>...</think> tags before giving the final answer.",
     "default_checkpoint": "out-clutch-llama3.2-final",
     "tokenizer": "meta-llama/Llama-3.2-3B-Instruct",
     "training": {

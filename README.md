@@ -2,7 +2,7 @@
 
 A powerful, instruction-tuned AI assistant built on **Meta's Llama 3.2 3B Instruct** architecture. Fine-tuned on a world-class mix of ~2.4 million examples spanning general knowledge, coding, math, reasoning, and multi-turn conversations.
 
-> Created by **Battu Ujwal Reddy**
+> Created by **Clutch Group**
 
 ---
 
