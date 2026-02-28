@@ -7,7 +7,7 @@
 Base Model : meta-llama/Llama-3.2-3B-Instruct
 Method     : QLoRA (4-bit) + SFT
 Datasets   : 11 datasets, ~2.4M examples
-Framework  : Unsloth + HuggingFace TRL
+Framework  : HuggingFace PEFT + TRL
 
 SETUP (do this ONCE before running):
   1. Go to huggingface.co → Sign in

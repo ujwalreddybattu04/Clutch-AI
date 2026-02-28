@@ -98,11 +98,11 @@ def main():
         print("\nClutch-AI:", end=" ", flush=True)
         
         with torch.no_grad():
-            # Handle Llama 3 specific end-of-turn tokens
-            terminators = [
-                tokenizer.eos_token_id,
-                tokenizer.convert_tokens_to_ids("<|eot_id|>")
-            ]
+            # Dynamically resolve Llama 3 stopping tokens
+            terminators = [tokenizer.eos_token_id]
+            eot_id = tokenizer.convert_tokens_to_ids("<|eot_id|>")
+            if eot_id is not None:
+                terminators.append(eot_id)
             
             outputs = model.generate(
                 **inputs,
@@ -110,7 +110,6 @@ def main():
                 temperature=0.7,
                 top_k=40,
                 top_p=0.9,
-                repetition_penalty=1.1,
                 eos_token_id=terminators,
                 do_sample=True,
             )

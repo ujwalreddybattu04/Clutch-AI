@@ -2,8 +2,8 @@
 Quick sanity check for the Clutch-AI checkpoint.
 
 Usage:
-    python scripts/test_ckpt.py
-    python scripts/test_ckpt.py --ckpt path/to/merged_model
+    python scripts/evaluate_model.py
+    python scripts/evaluate_model.py --ckpt path/to/merged_model
 """
 import sys
 import json
@@ -73,17 +73,17 @@ def main():
         ).to(model.device)
 
         with torch.no_grad():
-            terminators = [
-                tokenizer.eos_token_id,
-                tokenizer.convert_tokens_to_ids("<|eot_id|>")
-            ]
+            # Dynamically resolve stopping tokens
+            terminators = [tokenizer.eos_token_id]
+            eot_id = tokenizer.convert_tokens_to_ids("<|eot_id|>")
+            if eot_id is not None:
+                terminators.append(eot_id)
             outputs = model.generate(
                 input_ids=inputs,
                 max_new_tokens=256,
                 temperature=0.7,
                 top_k=40,
                 top_p=0.9,
-                repetition_penalty=1.15,
                 eos_token_id=terminators,
                 do_sample=True,
             )

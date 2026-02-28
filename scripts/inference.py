@@ -15,10 +15,13 @@ import sys
 import time
 import argparse
 import re
+import os
 from pathlib import Path
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from dotenv import load_dotenv
+from tavily import TavilyClient
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -66,6 +69,25 @@ def colored(text: str, color: str) -> str:
     return f"{color}{text}{Colors.RESET}"
 
 
+# ─── Web Search ──────────────────────────────────────────────────
+def get_web_context(query: str, tavily_client) -> str:
+    if not tavily_client:
+        return ""
+    print(colored(f"  🔍 Searching the web securely for: '{query}'...", Colors.DIM))
+    try:
+        response = tavily_client.search(query=query, search_depth="basic", max_results=3)
+        context = ""
+        for i, result in enumerate(response.get('results', [])):
+            context += f"[Source {i+1}]: {result['content']}\n"
+        
+        if context:
+            print(colored("  ✅ Web context successfully retrieved.", Colors.GREEN))
+        return context
+    except Exception as e:
+        print(colored(f"  ⚠️ Secure search failed: {e}", Colors.YELLOW))
+        return ""
+
+
 # ─── Model Loading ───────────────────────────────────────────────
 def load_model(model_path: Path, device: str):
     print(colored(f"  Loading model: {model_path}", Colors.DIM))
@@ -110,10 +132,11 @@ def generate_response(
 
     t0 = time.perf_counter()
 
-    terminators = [
-        tokenizer.eos_token_id,
-        tokenizer.convert_tokens_to_ids("<|eot_id|>")
-    ]
+    # Dynamically resolve stopping tokens
+    terminators = [tokenizer.eos_token_id]
+    eot_id = tokenizer.convert_tokens_to_ids("<|eot_id|>")
+    if eot_id is not None:
+        terminators.append(eot_id)
 
     with torch.no_grad():
         if stream:
@@ -195,9 +218,9 @@ def display_response(text: str, show_thinking: bool, stream_was_on: bool):
 
 
 # ─── Prompt Building ─────────────────────────────────────────────
-def build_messages(instruction: str, history: list) -> list:
+def build_messages(instruction: str, history: list, system_prompt: str) -> list:
     """Build Llama 3.2 chat messages with system prompt and history."""
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages = [{"role": "system", "content": system_prompt}]
 
     for turn in history:
         messages.append({"role": "user", "content": turn["user"]})
@@ -233,8 +256,8 @@ def main():
                         help="Top-k sampling (default 40)")
     parser.add_argument("--top_p", type=float, default=0.9,
                         help="Top-p sampling (default 0.9)")
-    parser.add_argument("--rep_pen", type=float, default=1.15,
-                        help="Repetition penalty (default 1.15)")
+    parser.add_argument("--rep_pen", type=float, default=1.0,
+                        help="Repetition penalty (default 1.0; >1.0 breaks Llama 3 tokens)")
     parser.add_argument("--max_tokens", type=int, default=512,
                         help="Max tokens to generate (default 512)")
     parser.add_argument("--model_path", type=str, default=None,
@@ -251,6 +274,13 @@ def main():
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(colored(f"\n  Device: {device}", Colors.DIM))
+
+    # Securely load environment variables
+    load_dotenv()
+    tavily_key = os.environ.get("TAVILY_API_KEY")
+    tavily_client = TavilyClient(api_key=tavily_key) if tavily_key else None
+    if not tavily_client:
+        print(colored("  ⚠️ TAVILY_API_KEY not found in .env. Web search disabled.", Colors.YELLOW))
 
     # Pick model path
     if args.model_path:
@@ -270,7 +300,13 @@ def main():
 
     # Single-shot mode
     if args.prompt:
-        messages = build_messages(args.prompt, [])
+        web_context = get_web_context(args.prompt, tavily_client)
+        if web_context:
+            current_system_prompt = f"{SYSTEM_PROMPT}\n\nAnswer the user's question using the following live web search results:\n{web_context}"
+        else:
+            current_system_prompt = SYSTEM_PROMPT
+            
+        messages = build_messages(args.prompt, [], current_system_prompt)
         stream = not args.no_stream
         if stream:
             sys.stdout.write(colored(f"{MODEL_NAME}: ", Colors.GREEN))
@@ -302,7 +338,14 @@ def main():
             break
 
         recent_history = history[-args.history_turns:] if args.history_turns > 0 else []
-        messages = build_messages(instruction, recent_history)
+        
+        web_context = get_web_context(instruction, tavily_client)
+        if web_context:
+            current_system_prompt = f"{SYSTEM_PROMPT}\n\nAnswer the user's question using the following live web search results:\n{web_context}"
+        else:
+            current_system_prompt = SYSTEM_PROMPT
+            
+        messages = build_messages(instruction, recent_history, current_system_prompt)
 
         stream = not args.no_stream
         if stream:

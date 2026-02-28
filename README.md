@@ -18,7 +18,7 @@ A powerful, instruction-tuned AI assistant built on **Meta's Llama 3.2 3B Instru
   - *MagicCoder & Code-Alpaca* (Coding)
   - *ScienceQA* (Science)
   - *TruthfulQA & Custom Datasets* (Identity and Anti-hallucination)
-- **Kaggle-Optimized Training**: Uses 4-bit QLoRA and Unsloth for blazing fast, low-memory training on a Kaggle free T4 GPU. Checkpoint auto-resume supported!
+- **Kaggle-Optimized Training**: Uses native 4-bit QLoRA via HuggingFace PEFT and TRL (optimized for P100 compatibility) for highly efficient, low-memory training on Kaggle GPUs. Checkpoint auto-resume supported!
 
 ---
 
@@ -93,7 +93,7 @@ Clutch-AI/
 | Architecture | Meta Llama 3.2 |
 | Size | 3 Billion Parameters |
 | Context Length | 2048 tokens |
-| Training Method | SFT + 4-bit QLoRA via Unsloth |
+| Training Method | SFT + 4-bit QLoRA (Native HuggingFace) |
 | Hardware Used | Kaggle Dual T4 GPUs |
 | Sampling | Top-k, Top-p, temperature, repetition penalty |
 
