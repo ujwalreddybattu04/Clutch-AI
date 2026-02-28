@@ -517,7 +517,7 @@ trainer = SFTTrainer(
     dataset_text_field="text",
     max_seq_length=MAX_SEQ_LENGTH,
     dataset_num_proc=2,
-    packing=False,                         # Disabled packing to prevent memory spikes
+    packing=True,                          # Must be True to avoid Unsloth int attribute error
     args=training_args,
 )
 
