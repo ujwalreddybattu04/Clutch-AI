@@ -431,7 +431,6 @@ tokenizer = get_chat_template(
 )
 
 def formatting_func(examples):
-    """Apply Llama 3.2 Instruct chat template using Unsloth's native format."""
     texts = []
     for msgs in examples["messages"]:
         try:
@@ -440,10 +439,22 @@ def formatting_func(examples):
                 tokenize=False,
                 add_generation_prompt=False,
             )
-            texts.append(text)
+            texts.append(text + tokenizer.eos_token)
         except Exception:
-            texts.append("")
-    return {"text": texts}
+            pass
+            
+    # Manually tokenize to bypass SFTTrainer array mapping bugs
+    tokenized = tokenizer(
+        texts,
+        truncation=True,
+        max_length=MAX_SEQ_LENGTH,
+        padding=False,
+        add_special_tokens=False,
+    )
+    
+    # Required for causal LM training
+    tokenized["labels"] = tokenized["input_ids"].copy()
+    return tokenized
 
 print("📝 Applying Llama 3.2 chat template...")
 train_dataset = train_dataset.map(
@@ -452,7 +463,7 @@ train_dataset = train_dataset.map(
     batch_size=1000,
     num_proc=2,
     remove_columns=["messages"],
-    desc="Formatting",
+    desc="Tokenizing",
 )
 
 # Remove empty entries
@@ -520,10 +531,9 @@ trainer = SFTTrainer(
     model=model,
     tokenizer=tokenizer,
     train_dataset=train_dataset,
-    dataset_text_field="text",
     max_seq_length=MAX_SEQ_LENGTH,
     dataset_num_proc=2,
-    packing=True,                          # Must be True to avoid Unsloth int attribute error
+    packing=True,
     args=training_args,
 )
 
