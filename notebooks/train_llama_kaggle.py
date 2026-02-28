@@ -36,7 +36,7 @@ import sys
 def install_deps():
     print("Installing dependencies...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "packaging", "ninja", "einops", "flash-attn", "xformers", "trl", "peft", "accelerate", "bitsandbytes"])
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "unsloth[kaggle-new]@git+https://github.com/unslothai/unsloth.git"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "unsloth"])
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "datasets", "sentencepiece", "protobuf"])
 
 install_deps()
