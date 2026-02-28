@@ -424,8 +424,14 @@ gc.collect()
 # ════════════════════════════════════════════════════════════════
 # CELL 8: Format Dataset with Llama 3.2 Chat Template
 # ════════════════════════════════════════════════════════════════
+from unsloth.chat_templates import get_chat_template
+tokenizer = get_chat_template(
+    tokenizer,
+    chat_template="llama-3.1", # Llama 3.2 uses the same template
+)
+
 def formatting_func(examples):
-    """Apply Llama 3.2 Instruct chat template to each example."""
+    """Apply Llama 3.2 Instruct chat template using Unsloth's native format."""
     texts = []
     for msgs in examples["messages"]:
         try:
