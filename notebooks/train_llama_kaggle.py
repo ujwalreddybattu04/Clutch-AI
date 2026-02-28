@@ -200,9 +200,11 @@ print(f"       ✅ {len(custom_examples) * 10} examples")
 
 
 # ─── 2. SlimOrca (518K — General instructions, GPT-4 quality) ───
-print("2/11  Loading SlimOrca (518K)...")
+print("2/11  Loading SlimOrca (subset 50K)...")
 try:
     ds_slimorca = load_dataset("Open-Orca/SlimOrca", split="train")
+    # Take a random subset to save RAM
+    ds_slimorca = ds_slimorca.shuffle(seed=42).select(range(min(50000, len(ds_slimorca))))
     for row in ds_slimorca:
         convs = row.get("conversations", [])
         if len(convs) >= 2:
@@ -225,9 +227,10 @@ except Exception as e:
 
 
 # ─── 3. OpenHermes 2.5 (1M+ — Diverse tasks) ───
-print("3/11  Loading OpenHermes 2.5 (1M+)...")
+print("3/11  Loading OpenHermes 2.5 (subset 50K)...")
 try:
     ds_hermes = load_dataset("teknium/OpenHermes-2.5", split="train")
+    ds_hermes = ds_hermes.shuffle(seed=42).select(range(min(50000, len(ds_hermes))))
     for row in ds_hermes:
         convs = row.get("conversations", [])
         if len(convs) >= 2:
@@ -250,9 +253,10 @@ except Exception as e:
 
 
 # ─── 4. UltraChat 200K (Multi-turn conversations) ───
-print("4/11  Loading UltraChat 200K...")
+print("4/11  Loading UltraChat 200K (subset 30K)...")
 try:
     ds_ultrachat = load_dataset("HuggingFaceH4/ultrachat_200k", split="train_sft")
+    ds_ultrachat = ds_ultrachat.shuffle(seed=42).select(range(min(30000, len(ds_ultrachat))))
     for row in ds_ultrachat:
         messages = row.get("messages", [])
         if messages and len(messages) >= 2:
@@ -281,9 +285,10 @@ except Exception as e:
 
 
 # ─── 6. Orca-Math (200K — Math word problems) ───
-print("6/11  Loading Orca-Math (200K)...")
+print("6/11  Loading Orca-Math (subset 20K)...")
 try:
     ds_orcamath = load_dataset("microsoft/orca-math-word-problems-200k", split="train")
+    ds_orcamath = ds_orcamath.shuffle(seed=42).select(range(min(20000, len(ds_orcamath))))
     for row in ds_orcamath:
         conv = to_chat_format(
             row.get("question", ""),
@@ -298,9 +303,10 @@ except Exception as e:
 
 
 # ─── 7. MetaMathQA (395K — Advanced math reasoning) ───
-print("7/11  Loading MetaMathQA (395K)...")
+print("7/11  Loading MetaMathQA (subset 20K)...")
 try:
     ds_metamath = load_dataset("meta-math/MetaMathQA", split="train")
+    ds_metamath = ds_metamath.shuffle(seed=42).select(range(min(20000, len(ds_metamath))))
     for row in ds_metamath:
         conv = to_chat_format(
             row.get("query", ""),
@@ -315,9 +321,10 @@ except Exception as e:
 
 
 # ─── 8. MagicCoder OSS Instruct (75K — Coding) ───
-print("8/11  Loading MagicCoder OSS (75K)...")
+print("8/11  Loading MagicCoder OSS (subset 20K)...")
 try:
     ds_magiccoder = load_dataset("ise-uiuc/Magicoder-OSS-Instruct-75K", split="train")
+    ds_magiccoder = ds_magiccoder.shuffle(seed=42).select(range(min(20000, len(ds_magiccoder))))
     for row in ds_magiccoder:
         conv = to_chat_format(
             row.get("problem", ""),
