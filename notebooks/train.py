@@ -130,9 +130,9 @@ print(f"✅ LoRA applied! Trainable: {trainable/1e6:.1f}M / {total/1e6:.1f}M ({1
 # ════════════════════════════════════════════════════════════════
 import json
 
-# Load model identity config
-config_path = "/kaggle/working/Clutch-AI/config/llama_3b_config.json"
-with open(config_path, "r") as f:
+# ==============================================================================
+config_path = "/kaggle/working/Clutch-AI/config/model_config.json"
+with open(config_path, "r", encoding="utf-8") as f:
     model_config = json.load(f)
 
 MODEL_IDENTITY = model_config["name"]

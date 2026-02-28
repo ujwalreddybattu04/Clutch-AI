@@ -17,7 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 # ── Load config ──
-config_path = REPO_ROOT / "config" / "llama_3b_config.json"
+config_path = REPO_ROOT / "config" / "model_config.json"
 with open(config_path, "r", encoding="utf-8") as f:
     CFG = json.load(f)
 
@@ -73,6 +73,10 @@ def main():
         ).to(model.device)
 
         with torch.no_grad():
+            terminators = [
+                tokenizer.eos_token_id,
+                tokenizer.convert_tokens_to_ids("<|eot_id|>")
+            ]
             outputs = model.generate(
                 input_ids=inputs,
                 max_new_tokens=256,
@@ -80,6 +84,7 @@ def main():
                 top_k=40,
                 top_p=0.9,
                 repetition_penalty=1.15,
+                eos_token_id=terminators,
                 do_sample=True,
             )
 

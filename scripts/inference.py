@@ -27,8 +27,8 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 import json
 
 def load_config():
-    """Load model identity from config/llama_3b_config.json."""
-    config_path = REPO_ROOT / "config" / "llama_3b_config.json"
+    """Load model identity from config/model_config.json."""
+    config_path = REPO_ROOT / "config" / "model_config.json"
     if not config_path.exists():
         return {
             "name": "Clutch-AI",
@@ -110,6 +110,11 @@ def generate_response(
 
     t0 = time.perf_counter()
 
+    terminators = [
+        tokenizer.eos_token_id,
+        tokenizer.convert_tokens_to_ids("<|eot_id|>")
+    ]
+
     with torch.no_grad():
         if stream:
             # Streaming generation
@@ -125,6 +130,7 @@ def generate_response(
                 top_k=top_k,
                 top_p=top_p,
                 repetition_penalty=rep_penalty,
+                eos_token_id=terminators,
                 do_sample=True,
                 streamer=streamer,
             )
@@ -147,6 +153,7 @@ def generate_response(
                 top_k=top_k,
                 top_p=top_p,
                 repetition_penalty=rep_penalty,
+                eos_token_id=terminators,
                 do_sample=True,
             )
             generated_text = tokenizer.decode(
