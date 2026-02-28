@@ -87,7 +87,7 @@ else:
 from unsloth import FastLanguageModel
 
 MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
-MAX_SEQ_LENGTH = 2048
+MAX_SEQ_LENGTH = 1024  # Reduced from 2048 to prevent CUDA OOM
 DTYPE = None  # auto-detect (float16 for T4)
 LOAD_IN_4BIT = True
 
@@ -477,8 +477,8 @@ training_args = TrainingArguments(
     max_steps=-1,                          # -1 = use num_train_epochs
 
     # ── Batch size ──
-    per_device_train_batch_size=2,         # Fits T4 16GB with QLoRA
-    gradient_accumulation_steps=4,         # Effective batch = 2 * 4 = 8
+    per_device_train_batch_size=1,         # Reduced to 1 to prevent CUDA OOM
+    gradient_accumulation_steps=8,         # Effective batch = 1 * 8 = 8
 
     # ── Learning rate ──
     learning_rate=2e-4,                    # Standard for QLoRA
@@ -517,7 +517,7 @@ trainer = SFTTrainer(
     dataset_text_field="text",
     max_seq_length=MAX_SEQ_LENGTH,
     dataset_num_proc=2,
-    packing=True,                          # Pack short examples together (faster)
+    packing=False,                         # Disabled packing to prevent memory spikes
     args=training_args,
 )
 
