@@ -35,12 +35,8 @@ import sys
 
 def install_deps():
     print("Installing dependencies...")
-    # Force uninstall any cached broken versions
-    subprocess.call([sys.executable, "-m", "pip", "uninstall", "-y", "unsloth", "unsloth-zoo"])
-    
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "packaging", "ninja", "einops", "flash-attn", "xformers", "trl", "peft", "accelerate", "bitsandbytes"])
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "unsloth", "unsloth-zoo"])
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "datasets", "sentencepiece", "protobuf"])
+    # Unsloth is removed to ensure compatibility with older GPUs like P100
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "datasets", "peft", "bitsandbytes", "trl", "accelerate", "transformers", "sentencepiece", "protobuf"])
 
 install_deps()
 
@@ -79,44 +75,51 @@ if torch.cuda.is_available():
     gpu_mem = torch.cuda.get_device_properties(0).total_memory / 1e9
     print(f"✅ GPU: {gpu_name} ({gpu_mem:.1f} GB VRAM)")
 else:
-    raise RuntimeError("❌ No GPU found! Enable GPU in Settings → Accelerator → GPU T4 x2")
+    raise RuntimeError("❌ No GPU found! Enable GPU in Settings")
 
 # ════════════════════════════════════════════════════════════════
 # CELL 4: Load Model with QLoRA (4-bit Quantization)
 # ════════════════════════════════════════════════════════════════
-from unsloth import FastLanguageModel
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import get_peft_model, LoraConfig, prepare_model_for_kbit_training
 
 MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
-MAX_SEQ_LENGTH = 1024  # Reduced from 2048 to prevent CUDA OOM
-DTYPE = None  # auto-detect (float16 for T4)
-LOAD_IN_4BIT = True
+MAX_SEQ_LENGTH = 1024
 
 print(f"📥 Loading {MODEL_NAME}...")
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name=MODEL_NAME,
-    max_seq_length=MAX_SEQ_LENGTH,
-    dtype=DTYPE,
-    load_in_4bit=LOAD_IN_4BIT,
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, token=hf_token)
+tokenizer.pad_token = tokenizer.eos_token
+tokenizer.padding_side = "right"
+
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.float16,
+)
+
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_NAME,
+    quantization_config=bnb_config,
+    device_map="auto",
     token=hf_token,
 )
-print(f"✅ Model loaded! Parameters: {model.num_parameters() / 1e6:.1f}M")
+model = prepare_model_for_kbit_training(model)
+print(f"✅ Model loaded!")
 
 # ════════════════════════════════════════════════════════════════
 # CELL 5: Apply LoRA Adapters
 # ════════════════════════════════════════════════════════════════
-model = FastLanguageModel.get_peft_model(
-    model,
-    r=16,                          # LoRA rank (higher = more capacity)
-    target_modules=[               # Which layers to fine-tune
-        "q_proj", "k_proj", "v_proj", "o_proj",
-        "gate_proj", "up_proj", "down_proj",
-    ],
+peft_config = LoraConfig(
+    r=16,
     lora_alpha=16,
-    lora_dropout=0,                # Unsloth optimized: 0 dropout
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    lora_dropout=0.05,
     bias="none",
-    use_gradient_checkpointing="unsloth",  # 60% less VRAM
-    random_state=42,
+    task_type="CAUSAL_LM",
 )
+model = get_peft_model(model, peft_config)
+model.config.use_cache = False
 
 trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
 total = sum(p.numel() for p in model.parameters())
@@ -424,12 +427,6 @@ gc.collect()
 # ════════════════════════════════════════════════════════════════
 # CELL 8: Format Dataset with Llama 3.2 Chat Template
 # ════════════════════════════════════════════════════════════════
-from unsloth.chat_templates import get_chat_template
-tokenizer = get_chat_template(
-    tokenizer,
-    chat_template="llama-3.1", # Llama 3.2 uses the same template
-)
-
 def formatting_func(examples):
     texts = []
     for msgs in examples["messages"]:
@@ -480,61 +477,38 @@ print("...")
 # ════════════════════════════════════════════════════════════════
 # CELL 9: Configure Training
 # ════════════════════════════════════════════════════════════════
-from trl import SFTTrainer
-from transformers import TrainingArguments
-from unsloth import is_bfloat16_supported
+from transformers import Trainer, TrainingArguments, DataCollatorForLanguageModeling
 
 OUTPUT_DIR = "/kaggle/working/Clutch-AI/out-clutch-1.0.0"
 
 training_args = TrainingArguments(
     output_dir=OUTPUT_DIR,
-
-    # ── Training duration ──
-    num_train_epochs=1,                    # 1 full pass over 2.4M examples
-    max_steps=-1,                          # -1 = use num_train_epochs
-
-    # ── Batch size ──
-    per_device_train_batch_size=1,         # Reduced to 1 to prevent CUDA OOM
-    gradient_accumulation_steps=8,         # Effective batch = 1 * 8 = 8
-
-    # ── Learning rate ──
-    learning_rate=2e-4,                    # Standard for QLoRA
+    num_train_epochs=1,
+    per_device_train_batch_size=1,
+    gradient_accumulation_steps=8,
+    learning_rate=2e-4,
     lr_scheduler_type="cosine",
     warmup_ratio=0.03,
-
-    # ── Precision ──
-    fp16=not is_bfloat16_supported(),
-    bf16=is_bfloat16_supported(),
-
-    # ── Logging ──
+    fp16=True, # Ensure P100 compatibility
+    bf16=False,
     logging_steps=25,
-    logging_first_step=True,
-
-    # ── Checkpointing (for resume across Kaggle sessions) ──
     save_strategy="steps",
-    save_steps=500,                        # Save every 500 steps
-    save_total_limit=3,                    # Keep last 3 checkpoints
-
-    # ── Optimization ──
-    optim="adamw_8bit",                    # Memory-efficient optimizer
+    save_steps=500,
+    save_total_limit=3,
+    optim="paged_adamw_8bit",
     weight_decay=0.01,
     max_grad_norm=1.0,
     seed=42,
-
-    # ── Performance ──
     dataloader_num_workers=2,
-    group_by_length=True,                  # Faster training
-    report_to="none",                      # No wandb/tensorboard
+    group_by_length=True,
+    report_to="none",
 )
 
-trainer = SFTTrainer(
+trainer = Trainer(
     model=model,
-    tokenizer=tokenizer,
     train_dataset=train_dataset,
-    max_seq_length=MAX_SEQ_LENGTH,
-    dataset_num_proc=2,
-    packing=True,
     args=training_args,
+    data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False),
 )
 
 # Calculate training info
@@ -596,21 +570,15 @@ print("💾 Saving LoRA adapter...")
 model.save_pretrained(f"{SAVE_DIR}/lora-adapter")
 tokenizer.save_pretrained(f"{SAVE_DIR}/lora-adapter")
 
-print("💾 Saving merged full model (for easy inference)...")
-model.save_pretrained_merged(
-    f"{SAVE_DIR}/merged",
-    tokenizer,
-    save_method="merged_16bit",
-)
+# We skip merging here because we aren't using Unsloth.
+# Users can merge locally if they wish using PEFT.
+print(f"✅ Model LoRA saved to {SAVE_DIR}/lora-adapter")
 
-print(f"✅ Model saved to {SAVE_DIR}")
-
-# Also save to the Clutch-AI output dir
 import shutil
 merged_ckpt_dir = "/kaggle/working/Clutch-AI/out-clutch-1.0.0-final"
 if os.path.exists(merged_ckpt_dir):
     shutil.rmtree(merged_ckpt_dir)
-shutil.copytree(f"{SAVE_DIR}/merged", merged_ckpt_dir)
+shutil.copytree(f"{SAVE_DIR}/lora-adapter", merged_ckpt_dir)
 print(f"✅ Also copied to {merged_ckpt_dir}")
 
 
@@ -624,7 +592,7 @@ print("🧪 TESTING CLUTCH-AI v1.0.0")
 print("="*60 + "\n")
 
 # Switch to inference mode
-FastLanguageModel.for_inference(model)
+model.eval()
 
 # Test prompts
 test_prompts = [
