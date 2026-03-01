@@ -3,9 +3,27 @@
     "version": "1.0.0",
     "creator": "Clutch Group",
     "base_model": "meta-llama/Llama-3.2-3B-Instruct",
-    "system_prompt": "You are {name}, an advanced AI assistant developed by {creator}. You provide clear, accurate, and highly professional answers. If you are unsure about something, state so honestly. When solving logical or mathematical problems, you must always think step by step and show your reasoning inside <think>...</think> tags before giving the final answer.",
-    "default_checkpoint": "out-clutch-llama3.2-final",
     "tokenizer": "meta-llama/Llama-3.2-3B-Instruct",
+    "default_checkpoint": "out-clutch-llama3.2-final",
+    "system_prompt": "You are {name}, an advanced AI assistant built by {creator}. You provide clear, accurate, and professional answers. If unsure, say so honestly. For math and logic problems, show your reasoning inside <think>...</think> tags before giving the final answer.",
+    "behavior_prompt": "Answer the user's question directly. Be concise and accurate. Do not output URLs or links. Do not create menus or option lists. Do not generate fake Q&A. Do not add notes about your own response. Never say 'as of my knowledge cutoff' or 'as of my last update'. Stop when you have answered the question.",
+    "web_context_prompt": "Use the information below to answer accurately. Present it naturally as if you already know it. Do not mention searching, sources, or knowledge cutoffs. Do not say 'as of my last update'. Do not output URLs.",
+    "router_prompt": "You are a binary query classifier. Output exactly one word: SEARCH or SKIP.\n\nSEARCH means: the query needs real-time, factual, or verifiable information from the web.\nSKIP means: the query can be answered from general knowledge, or doesn't need factual lookup.\n\n## Examples\n\n\"what is deep learning\" → SEARCH\n\"explain quantum computing\" → SEARCH\n\"latest news on AI\" → SEARCH\n\"Tesla stock price today\" → SEARCH\n\"who founded SpaceX\" → SEARCH\n\"what is Dell known for\" → SEARCH\n\"best programming language 2026\" → SEARCH\n\"what happened in Ukraine\" → SEARCH\n\"weather in New York\" → SEARCH\n\"compare MongoDB and PostgreSQL\" → SEARCH\n\"what is inflation rate\" → SEARCH\n\"symptoms of diabetes\" → SEARCH\n\"how does photosynthesis work\" → SEARCH\n\"what date is it today\" → SEARCH\n\n\"hello\" → SKIP\n\"hi there\" → SKIP\n\"thanks\" → SKIP\n\"got it\" → SKIP\n\"tell me more\" → SKIP\n\"go on\" → SKIP\n\"write a poem\" → SKIP\n\"write python code for sorting\" → SKIP\n\"who are you\" → SKIP\n\"what can you do\" → SKIP\n\"2 + 2\" → SKIP\n\"solve x^2 = 16\" → SKIP\n\"imagine a world where\" → SKIP\n\"debug this code\" → SKIP\n\n## Rules\n- Output ONLY: SEARCH or SKIP. Nothing else.\n- Default to SEARCH when uncertain.\n- Factual, technical, current-events, and real-world questions → SEARCH.\n- Greetings, math, creative writing, code generation, follow-ups, meta questions → SKIP.",
+    "generation": {
+        "max_new_tokens": 300,
+        "temperature": 0.6,
+        "top_k": 30,
+        "top_p": 0.8,
+        "repetition_penalty": 1.1
+    },
+    "web_search": {
+        "max_results": 3,
+        "search_depth": "basic",
+        "max_content_length": 500
+    },
+    "memory": {
+        "max_turns": 4
+    },
     "training": {
         "method": "QLoRA",
         "lora_rank": 16,
@@ -22,6 +40,6 @@
             "truthful_qa",
             "custom_examples.json"
         ],
-        "total_examples": "~2.4M"
+        "total_examples": "~249K"
     }
 }
