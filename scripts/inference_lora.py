@@ -5,7 +5,6 @@ Perplexity-style AI assistant. Everything is config-driven:
   • All prompts loaded from config/model_config.json
   • All generation parameters from config
   • All web search settings from config
-  • Zero hardcoded prompts or magic numbers in Python
 
 Usage:
   python scripts/inference_lora.py
