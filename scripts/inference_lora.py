@@ -5,6 +5,7 @@ Perplexity-style AI assistant. Everything is config-driven:
   • All prompts loaded from config/model_config.json
   • All generation parameters from config
   • All web search settings from config
+  !python file
 """
 
 import os
