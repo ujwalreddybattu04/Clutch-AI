@@ -3,6 +3,7 @@ Clutch-AI v1.0.0 — Industry-Grade Local Inference (LoRA)
 ==========================================================
 Perplexity-style AI assistant. Everything is config-driven:
   • All prompts loaded from config/model_config.json
+  * python scripting
 
 """
 
