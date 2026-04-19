@@ -5,7 +5,7 @@ Perplexity-style AI assistant. Everything is config-driven:
 pythn script 
 Inference testing and web search 
 unsupervised learning training
-lora factor
+lora factor-upgrade
 """
 
 import os
