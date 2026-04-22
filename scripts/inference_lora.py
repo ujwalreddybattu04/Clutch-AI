@@ -6,7 +6,7 @@ pythn script
 Inference testing and web search 
 unsupervised learning training
 lora factor-upgrade
-Quantization activation
+Quantization activation and informal techniques
 """
 
 import os
